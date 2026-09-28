@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="ceb">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Object Detector</title>
+<style>
+  :root { --bg:#eef2ee; --ink:#14201a; --line:#c9d3cb; --accent:#1f6f4a; --panel:#fff; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#0f1512; --ink:#e6efe8; --line:#2a3a31; --accent:#5bd28f; --panel:#161f1a; }
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font-family:Georgia,'Times New Roman',serif; line-height:1.5; }
+  main { max-width:760px; margin:0 auto; padding:20px 16px 40px; }
+  h1 { font-size:1.6rem; margin:0 0 4px; }
+  p.sub { margin:0 0 16px; opacity:.75; }
+  .stage { position:relative; background:#000; border:1px solid var(--line); border-radius:6px; overflow:hidden; aspect-ratio:4/3; }
+  video, canvas { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
+  .msg { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; text-align:center; padding:20px; color:#dfe8e2; }
+  .row { display:flex; gap:10px; margin:14px 0; flex-wrap:wrap; }
+  button { font:inherit; padding:10px 18px; border-radius:6px; border:1px solid var(--accent); background:var(--accent); color:#fff; cursor:pointer; }
+  button.alt { background:transparent; color:var(--accent); }
+  button:disabled { opacity:.5; cursor:default; }
+  button:focus-visible { outline:3px solid var(--ink); outline-offset:2px; }
+  #list { background:var(--panel); border:1px solid var(--line); border-radius:6px; padding:12px 16px; min-height:64px; }
+  #list b { color:var(--accent); }
+  #status { font-size:.9rem; opacity:.8; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Object Detector</h1>
+  <p class="sub">I-open ang camera aron ma-detect ang tawo ug mga butang.</p>
+
+  <div class="stage">
+    <video id="video" playsinline muted></video>
+    <canvas id="canvas"></canvas>
+    <div class="msg" id="msg">Pislita ang "Open camera" aron magsugod.</div>
+  </div>
+
+  <div class="row">
+    <button id="start">Open camera</button>
+    <button id="flip" class="alt" disabled>Switch camera</button>
+    <button id="stop" class="alt" disabled>Stop</button>
+  </div>
+  <p id="status">Naghulat...</p>
+  <div id="list">Wala pa'y na-detect.</div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js"></script>
+<script>
+const video = document.getElementById('video');
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const msg = document.getElementById('msg');
+const statusEl = document.getElementById('status');
+const listEl = document.getElementById('list');
+const startBtn = document.getElementById('start');
+const flipBtn = document.getElementById('flip');
+const stopBtn = document.getElementById('stop');
+
+let model = null, stream = null, running = false, facing = 'environment';
+
+async function loadModel() {
+  if (model) return model;
+  statusEl.textContent = 'Nag-load sa model...';
+  model = await cocoSsd.load();
+  return model;
+}
+
+async function openCamera() {
+  if (stream) stream.getTracks().forEach(t => t.stop());
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: facing, width: { ideal: 640 }, height: { ideal: 480 } },
+      audio: false
+    });
+  } catch (e) {
+    msg.style.display = 'flex';
+    msg.textContent = 'Dili ma-open ang camera. Palihog i-allow ang camera permission sa browser, ug siguroha nga HTTPS ang link.';
+    statusEl.textContent = 'Error: ' + e.name;
+    return false;
+  }
+  video.srcObject = stream;
+  await video.play();
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  msg.style.display = 'none';
+  return true;
+}
+
+async function detectLoop() {
+  if (!running) return;
+  const preds = await model.detect(video);
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  // canvas uses same intrinsic size as video, CSS object-fit matches both
+  ctx.lineWidth = 3;
+  ctx.font = '18px Georgia';
+  const counts = {};
+  preds.forEach(p => {
+    if (p.score < 0.5) return;
+    const [x, y, w, h] = p.bbox;
+    ctx.strokeStyle = '#5bd28f';
+    ctx.strokeRect(x, y, w, h);
+    const label = `${p.class} ${Math.round(p.score * 100)}%`;
+    const tw = ctx.measureText(label).width + 10;
+    ctx.fillStyle = '#5bd28f';
+    ctx.fillRect(x, Math.max(0, y - 24), tw, 24);
+    ctx.fillStyle = '#062012';
+    ctx.fillText(label, x + 5, Math.max(18, y - 6));
+    counts[p.class] = (counts[p.class] || 0) + 1;
+  });
+  const keys = Object.keys(counts);
+  listEl.innerHTML = keys.length
+    ? keys.map(k => `<b>${counts[k]}</b> ${k}`).join(' &nbsp; ')
+    : 'Wala pa'y na-detect.';
+  requestAnimationFrame(detectLoop);
+}
+
+startBtn.onclick = async () => {
+  startBtn.disabled = true;
+  await loadModel();
+  if (await openCamera()) {
+    running = true;
+    statusEl.textContent = 'Nag-detect na...';
+    flipBtn.disabled = false;
+    stopBtn.disabled = false;
+    detectLoop();
+  } else {
+    startBtn.disabled = false;
+  }
+};
+
+flipBtn.onclick = async () => {
+  facing = facing === 'environment' ? 'user' : 'environment';
+  await openCamera();
+};
+
+stopBtn.onclick = () => {
+  running = false;
+  if (stream) stream.getTracks().forEach(t => t.stop());
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  msg.style.display = 'flex';
+  msg.textContent = 'Gi-stop na ang camera.';
+  statusEl.textContent = 'Naghulat...';
+  startBtn.disabled = false;
+  flipBtn.disabled = true;
+  stopBtn.disabled = true;
+};
+</script>
+</body>
+</html>
