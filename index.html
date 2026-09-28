@@ -28,6 +28,20 @@ button:active{transform:scale(.94)}
 #no{background:rgba(255,255,255,.14);border:2px solid rgba(255,255,255,.3);z-index:5}
 #no.run{position:fixed;transition:left .25s cubic-bezier(.3,1.5,.5,1),top .25s cubic-bezier(.3,1.5,.5,1)}
 .tag{margin-top:22px;font-size:14px;min-height:20px;color:var(--gold)}
+/* envelope */
+.env{position:relative;width:min(78vw,300px);height:200px;cursor:pointer;margin-top:36px}
+.env>*{position:absolute}
+.env .back{inset:0;background:#b8305f;border-radius:12px;box-shadow:0 24px 50px rgba(0,0,0,.45)}
+.env .letter{left:8%;right:8%;top:10px;bottom:10px;background:#fff7fa;border-radius:8px;z-index:1;display:flex;align-items:center;justify-content:center;padding:12px;font:italic 700 21px/1.2 'Fraunces',Georgia,serif;color:#3a1230;transition:transform .9s cubic-bezier(.3,1.2,.4,1) .55s}
+.env .front{inset:0;z-index:2;border-radius:12px;background:linear-gradient(160deg,#e0497c,#c93a6b);clip-path:polygon(0 0,50% 54%,100% 0,100% 100%,0 100%)}
+.env .flap{left:0;right:0;top:0;height:54%;z-index:3;background:#ee6a97;border-radius:12px 12px 0 0;clip-path:polygon(0 0,100% 0,50% 100%);transform-origin:top;transition:transform .6s ease,z-index 0s .3s}
+.env .seal{left:50%;top:42%;z-index:4;font-size:34px;margin:-17px 0 0 -17px;animation:beat 1.3s infinite;transition:opacity .3s}
+@keyframes beat{40%{transform:scale(1.25)}}
+.env.open .flap{transform:rotateX(180deg);z-index:0}
+.env.open .seal{opacity:0;animation:none}
+.env.open .letter{transform:translateY(-120px)}
+.hint{margin-top:44px;color:var(--gold);font-weight:800;animation:fade 1.6s ease-in-out infinite}
+@keyframes fade{50%{opacity:.35}}
 /* receipt */
 .card{background:#fff7fa;color:#3a1230;border-radius:22px;padding:22px 22px 18px;width:min(100%,340px);text-align:left;box-shadow:0 20px 50px rgba(0,0,0,.4);position:relative}
 .card::after{content:"";position:absolute;left:0;right:0;bottom:-10px;height:10px;background:radial-gradient(circle at 8px 0,#fff7fa 7px,transparent 8px) 0 0/16px 10px repeat-x}
@@ -49,8 +63,22 @@ canvas{position:fixed;inset:0;pointer-events:none;z-index:9}
 <div class="hearts" id="hearts"></div>
 <canvas id="fx"></canvas>
 
+<!-- 0. Envelope -->
+<section class="screen on" id="s0">
+  <h1 style="font-size:clamp(30px,9vw,44px)">You've got mail 💌</h1>
+  <p>A letter for Jireh Joy Paluga</p>
+  <div class="env" id="env">
+    <div class="back"></div>
+    <div class="letter">I have a question for you…</div>
+    <div class="front"></div>
+    <div class="flap"></div>
+    <div class="seal">❤️</div>
+  </div>
+  <div class="hint" id="hint">Tap the envelope to open</div>
+</section>
+
 <!-- 1. The question -->
-<section class="screen on" id="s1">
+<section class="screen" id="s1">
   <div class="ring">💍</div>
   <h1>Jireh Joy, will you marry me?</h1>
   <p id="sub">I have something important to ask you.</p>
@@ -141,6 +169,14 @@ function tick(){
   P.forEach(p=>{p.vy+=.5*devicePixelRatio;p.x+=p.vx;p.y+=p.vy;p.r+=p.vr;p.l-=.004;cx.save();cx.translate(p.x,p.y);cx.rotate(p.r);cx.fillStyle=p.c;cx.globalAlpha=Math.max(p.l,0);cx.fillRect(-p.s/2,-p.s/3,p.s,p.s*.6);cx.restore()});
   if(P.length)requestAnimationFrame(tick);else burst.on=0;
 }
+
+// envelope
+const env=$('#env');
+env.addEventListener('click',()=>{
+  if(env.classList.contains('open'))return;
+  env.classList.add('open');$('#hint').style.visibility='hidden';
+  setTimeout(()=>{show('#s1');burst()},2300);
+});
 
 // flow
 yes.addEventListener('click',()=>{show('#s2');burst()});
