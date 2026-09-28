@@ -42,6 +42,8 @@
     <button id="start">Open camera</button>
     <button id="flip" class="alt" disabled>Switch camera</button>
     <button id="stop" class="alt" disabled>Stop</button>
+    <button id="photo" class="alt">Take photo instead</button>
+    <input type="file" id="file" accept="image/*" capture="environment" hidden>
   </div>
   <p id="status">Naghulat...</p>
   <div id="list">Wala pa'y na-detect.</div>
@@ -71,6 +73,12 @@ async function loadModel() {
 
 async function openCamera() {
   if (stream) stream.getTracks().forEach(t => t.stop());
+  if (!navigator.mediaDevices || !window.isSecureContext) {
+    msg.style.display = 'flex';
+    msg.textContent = 'Dili ma-open ang camera kay wala sa HTTPS ang page. I-open gikan sa https://username.github.io/... link, dili gikan sa file o preview. O pislita ang "Take photo instead".';
+    statusEl.textContent = 'Error: not a secure page';
+    return false;
+  }
   try {
     stream = await navigator.mediaDevices.getUserMedia({
       video: { facingMode: facing, width: { ideal: 640 }, height: { ideal: 480 } },
@@ -78,10 +86,17 @@ async function openCamera() {
     });
   } catch (e) {
     msg.style.display = 'flex';
-    msg.textContent = 'Dili ma-open ang camera. Palihog i-allow ang camera permission sa browser, ug siguroha nga HTTPS ang link.';
+    const hints = {
+      NotAllowedError: 'Gi-block ang camera permission. I-tap ang lock icon tupad sa address bar → Camera → Allow, dayon i-refresh. Kung in-app browser (Messenger/FB), i-open sa Chrome o Safari.',
+      NotFoundError: 'Walay camera nga nakita sa device.',
+      NotReadableError: 'Gigamit na sa laing app ang camera. Sira-a ang lain nga app dayon sulayi pag-usab.',
+      OverconstrainedError: 'Dili suportado ang camera setting. Sulayi ang Switch camera.'
+    };
+    msg.textContent = (hints[e.name] || 'Dili ma-open ang camera.') + ' O pislita ang "Take photo instead".';
     statusEl.textContent = 'Error: ' + e.name;
     return false;
   }
+  video.style.display = '';
   video.srcObject = stream;
   await video.play();
   canvas.width = video.videoWidth;
@@ -90,13 +105,10 @@ async function openCamera() {
   return true;
 }
 
-async function detectLoop() {
-  if (!running) return;
-  const preds = await model.detect(video);
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  // canvas uses same intrinsic size as video, CSS object-fit matches both
-  ctx.lineWidth = 3;
-  ctx.font = '18px Georgia';
+function drawPreds(preds) {
+  ctx.lineWidth = Math.max(3, canvas.width / 200);
+  const fs = Math.max(18, Math.round(canvas.width / 35));
+  ctx.font = fs + 'px Georgia';
   const counts = {};
   preds.forEach(p => {
     if (p.score < 0.5) return;
@@ -106,30 +118,63 @@ async function detectLoop() {
     const label = `${p.class} ${Math.round(p.score * 100)}%`;
     const tw = ctx.measureText(label).width + 10;
     ctx.fillStyle = '#5bd28f';
-    ctx.fillRect(x, Math.max(0, y - 24), tw, 24);
+    ctx.fillRect(x, Math.max(0, y - fs - 6), tw, fs + 6);
     ctx.fillStyle = '#062012';
-    ctx.fillText(label, x + 5, Math.max(18, y - 6));
+    ctx.fillText(label, x + 5, Math.max(fs, y - 8));
     counts[p.class] = (counts[p.class] || 0) + 1;
   });
   const keys = Object.keys(counts);
   listEl.innerHTML = keys.length
     ? keys.map(k => `<b>${counts[k]}</b> ${k}`).join(' &nbsp; ')
-    : 'Wala pa'y na-detect.';
+    : 'Wala pa\'y na-detect.';
+}
+
+async function detectLoop() {
+  if (!running) return;
+  const preds = await model.detect(video);
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  drawPreds(preds);
   requestAnimationFrame(detectLoop);
 }
 
+document.getElementById('photo').onclick = () => document.getElementById('file').click();
+document.getElementById('file').onchange = async (e) => {
+  const f = e.target.files[0];
+  if (!f) return;
+  running = false;
+  if (stream) stream.getTracks().forEach(t => t.stop());
+  await loadModel();
+  statusEl.textContent = 'Nag-detect sa photo...';
+  const img = new Image();
+  img.src = URL.createObjectURL(f);
+  await img.decode();
+  canvas.width = img.naturalWidth;
+  canvas.height = img.naturalHeight;
+  video.style.display = 'none';
+  msg.style.display = 'none';
+  ctx.drawImage(img, 0, 0);
+  drawPreds(await model.detect(img));
+  statusEl.textContent = 'Human na. Pislita ang "Take photo instead" para sa lain pa.';
+  startBtn.disabled = false;
+  e.target.value = '';
+};
+
 startBtn.onclick = async () => {
   startBtn.disabled = true;
-  await loadModel();
-  if (await openCamera()) {
-    running = true;
-    statusEl.textContent = 'Nag-detect na...';
-    flipBtn.disabled = false;
-    stopBtn.disabled = false;
-    detectLoop();
-  } else {
-    startBtn.disabled = false;
+  statusEl.textContent = 'Palihog pislita ang "Allow" kung mangayo ang browser ug camera permission...';
+  // Ask for the camera FIRST so the Allow prompt appears right away
+  if (!(await openCamera())) { startBtn.disabled = false; return; }
+  flipBtn.disabled = false;
+  stopBtn.disabled = false;
+  try {
+    await loadModel();
+  } catch (e) {
+    statusEl.textContent = 'Wala ma-load ang detection model. Check ang internet ug i-refresh.';
+    return;
   }
+  running = true;
+  statusEl.textContent = 'Nag-detect na...';
+  detectLoop();
 };
 
 flipBtn.onclick = async () => {
