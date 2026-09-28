@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Object Detector</title>
+<title>Person Detector</title>
 <style>
   :root { --bg:#eef2ee; --ink:#14201a; --line:#c9d3cb; --accent:#1f6f4a; --panel:#fff; }
   @media (prefers-color-scheme: dark) {
@@ -29,8 +29,8 @@
 </head>
 <body>
 <main>
-  <h1>Object Detector</h1>
-  <p class="sub">I-open ang camera aron ma-detect ang tawo ug mga butang.</p>
+  <h1>Person Detector</h1>
+  <p class="sub">I-open ang camera aron ma-detect ang tawo.</p>
 
   <div class="stage">
     <video id="video" playsinline muted></video>
@@ -46,7 +46,7 @@
     <input type="file" id="file" accept="image/*" capture="environment" hidden>
   </div>
   <p id="status">Naghulat...</p>
-  <div id="list">Wala pa'y na-detect.</div>
+  <div id="list">Walay tawo nga na-detect.</div>
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
@@ -111,11 +111,11 @@ function drawPreds(preds) {
   ctx.font = fs + 'px Georgia';
   const counts = {};
   preds.forEach(p => {
-    if (p.score < 0.5) return;
+    if (p.class !== 'person' || p.score < 0.5) return;
     const [x, y, w, h] = p.bbox;
     ctx.strokeStyle = '#5bd28f';
     ctx.strokeRect(x, y, w, h);
-    const label = `${p.class} ${Math.round(p.score * 100)}%`;
+    const label = `Tawo ${Math.round(p.score * 100)}%`;
     const tw = ctx.measureText(label).width + 10;
     ctx.fillStyle = '#5bd28f';
     ctx.fillRect(x, Math.max(0, y - fs - 6), tw, fs + 6);
@@ -124,9 +124,10 @@ function drawPreds(preds) {
     counts[p.class] = (counts[p.class] || 0) + 1;
   });
   const keys = Object.keys(counts);
-  listEl.innerHTML = keys.length
-    ? keys.map(k => `<b>${counts[k]}</b> ${k}`).join(' &nbsp; ')
-    : 'Wala pa\'y na-detect.';
+  const n = counts.person || 0;
+  listEl.innerHTML = n
+    ? `<b>${n}</b> ka tawo ang na-detect`
+    : 'Walay tawo nga na-detect.';
 }
 
 async function detectLoop() {
