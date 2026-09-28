@@ -1,199 +1,154 @@
 <!DOCTYPE html>
-<html lang="ceb">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Person Detector</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>A question for you 💍</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@1,9..144,700&family=Nunito:wght@600;800&display=swap" rel="stylesheet">
 <style>
-  :root { --bg:#eef2ee; --ink:#14201a; --line:#c9d3cb; --accent:#1f6f4a; --panel:#fff; }
-  @media (prefers-color-scheme: dark) {
-    :root { --bg:#0f1512; --ink:#e6efe8; --line:#2a3a31; --accent:#5bd28f; --panel:#161f1a; }
-  }
-  * { box-sizing:border-box; }
-  body { margin:0; background:var(--bg); color:var(--ink); font-family:Georgia,'Times New Roman',serif; line-height:1.5; }
-  main { max-width:760px; margin:0 auto; padding:20px 16px 40px; }
-  h1 { font-size:1.6rem; margin:0 0 4px; }
-  p.sub { margin:0 0 16px; opacity:.75; }
-  .stage { position:relative; background:#000; border:1px solid var(--line); border-radius:6px; overflow:hidden; aspect-ratio:4/3; }
-  video, canvas { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
-  .msg { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; text-align:center; padding:20px; color:#dfe8e2; }
-  .row { display:flex; gap:10px; margin:14px 0; flex-wrap:wrap; }
-  button { font:inherit; padding:10px 18px; border-radius:6px; border:1px solid var(--accent); background:var(--accent); color:#fff; cursor:pointer; }
-  button.alt { background:transparent; color:var(--accent); }
-  button:disabled { opacity:.5; cursor:default; }
-  button:focus-visible { outline:3px solid var(--ink); outline-offset:2px; }
-  #list { background:var(--panel); border:1px solid var(--line); border-radius:6px; padding:12px 16px; min-height:64px; }
-  #list b { color:var(--accent); }
-  #status { font-size:.9rem; opacity:.8; }
+:root{--bg1:#2a0f2e;--bg2:#5a1a45;--rose:#ff5d8f;--blush:#ffd6e3;--gold:#ffc857;--ink:#fff7fa}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;margin:0}
+body{font-family:'Nunito',system-ui,sans-serif;color:var(--ink);background:radial-gradient(120% 90% at 50% 0%,var(--bg2),var(--bg1));overflow:hidden;touch-action:manipulation;user-select:none;-webkit-user-select:none}
+.hearts{position:fixed;inset:0;pointer-events:none;overflow:hidden}
+.hearts span{position:absolute;bottom:-40px;opacity:.5;animation:rise linear infinite}
+@keyframes rise{to{transform:translateY(-115vh) rotate(25deg);opacity:0}}
+.screen{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:max(24px,env(safe-area-inset-top)) 24px max(24px,env(safe-area-inset-bottom))}
+.screen.on{display:flex;animation:pop .5s cubic-bezier(.2,1.4,.4,1)}
+@keyframes pop{from{transform:scale(.85);opacity:0}}
+.ring{font-size:84px;animation:bob 2.2s ease-in-out infinite;filter:drop-shadow(0 8px 20px rgba(255,200,87,.5))}
+@keyframes bob{50%{transform:translateY(-10px) rotate(-6deg)}}
+h1{font-family:'Fraunces',Georgia,serif;font-style:italic;font-weight:700;font-size:clamp(34px,10vw,54px);line-height:1.05;margin:14px 0 8px}
+p{font-size:17px;line-height:1.5;margin:0 0 6px;color:var(--blush);max-width:32ch}
+.btns{display:flex;gap:16px;margin-top:34px;align-items:center;justify-content:center}
+button{font:800 19px 'Nunito',sans-serif;border:0;border-radius:999px;padding:16px 34px;color:#fff;cursor:pointer;transition:transform .15s}
+button:active{transform:scale(.94)}
+#yes{background:linear-gradient(135deg,var(--rose),#ff8a5c);box-shadow:0 10px 30px rgba(255,93,143,.5);transform-origin:center}
+#no{background:rgba(255,255,255,.14);border:2px solid rgba(255,255,255,.3);z-index:5}
+#no.run{position:fixed;transition:left .25s cubic-bezier(.3,1.5,.5,1),top .25s cubic-bezier(.3,1.5,.5,1)}
+.tag{margin-top:22px;font-size:14px;min-height:20px;color:var(--gold)}
+/* receipt */
+.card{background:#fff7fa;color:#3a1230;border-radius:22px;padding:22px 22px 18px;width:min(100%,340px);text-align:left;box-shadow:0 20px 50px rgba(0,0,0,.4);position:relative}
+.card::after{content:"";position:absolute;left:0;right:0;bottom:-10px;height:10px;background:radial-gradient(circle at 8px 0,#fff7fa 7px,transparent 8px) 0 0/16px 10px repeat-x}
+.card h2{font-family:'Fraunces',serif;font-style:italic;margin:0 0 4px;font-size:26px}
+.card small{color:#9b6a86;font-weight:600}
+.row{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1.5px dashed #e7c3d3;font-weight:600;font-size:15px}
+.total{display:flex;justify-content:space-between;align-items:baseline;padding-top:12px;font-weight:800}
+.total b{font-size:34px;color:var(--rose)}
+.pay{display:grid;gap:10px;margin-top:26px;width:min(100%,340px)}
+.pay button{width:100%;padding:15px;font-size:17px}
+.gc{background:#0a6cff}.mi{background:#10a94a}.dc{background:rgba(255,255,255,.14);border:2px solid rgba(255,255,255,.3)}
+.spin{width:54px;height:54px;border:6px solid rgba(255,255,255,.2);border-top-color:var(--gold);border-radius:50%;animation:s 1s linear infinite;margin-bottom:22px}
+@keyframes s{to{transform:rotate(360deg)}}
+canvas{position:fixed;inset:0;pointer-events:none;z-index:9}
+@media (prefers-reduced-motion:reduce){.ring,.hearts span{animation:none}}
 </style>
 </head>
 <body>
-<main>
-  <h1>Person Detector</h1>
-  <p class="sub">I-open ang camera aron ma-detect ang tawo.</p>
+<div class="hearts" id="hearts"></div>
+<canvas id="fx"></canvas>
 
-  <div class="stage">
-    <video id="video" playsinline muted></video>
-    <canvas id="canvas"></canvas>
-    <div class="msg" id="msg">Pislita ang "Open camera" aron magsugod.</div>
+<!-- 1. The question -->
+<section class="screen on" id="s1">
+  <div class="ring">💍</div>
+  <h1>Jireh Joy, will you marry me?</h1>
+  <p id="sub">I have something important to ask you.</p>
+  <div class="btns">
+    <button id="yes">Yes 💖</button>
+    <button id="no">No</button>
   </div>
+  <div class="tag" id="tag"></div>
+</section>
 
-  <div class="row">
-    <button id="start">Open camera</button>
-    <button id="flip" class="alt" disabled>Switch camera</button>
-    <button id="stop" class="alt" disabled>Stop</button>
-    <button id="photo" class="alt">Take photo instead</button>
-    <input type="file" id="file" accept="image/*" capture="environment" hidden>
+<!-- 2. The bill -->
+<section class="screen" id="s2">
+  <div style="font-size:54px">🎉</div>
+  <h1 style="font-size:clamp(32px,9vw,46px)">She said yes!</h1>
+  <p style="margin-bottom:18px">Before we continue, please settle your invoice.</p>
+  <div class="card">
+    <h2>Marriage Invoice</h2><small>Billed to: Jireh Joy Paluga</small><br><small>Ref #ILY-0001 · Non-refundable</small>
+    <div style="margin-top:8px">
+      <div class="row"><span>Lifetime partner</span><span>₱2,500</span></div>
+      <div class="row"><span>Forever handling fee</span><span>₱1,000</span></div>
+      <div class="row"><span>Lifetime free cuddles</span><span>₱500</span></div>
+    </div>
+    <div class="total"><span>Total due</span><b>₱4,000</b></div>
   </div>
-  <p id="status">Naghulat...</p>
-  <div id="list">Walay tawo nga na-detect.</div>
-</main>
+  <div class="pay">
+    <button class="gc" data-pay>Pay with GCash</button>
+    <button class="mi" data-pay>Pay with Maya</button>
+    <button class="dc" id="cash" data-pay>Pay with cash 💵</button>
+  </div>
+</section>
 
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js"></script>
+<!-- 3. Processing -->
+<section class="screen" id="s3">
+  <div class="spin"></div>
+  <h1 style="font-size:32px">Processing payment…</h1>
+  <p id="proc">Contacting the bank of love</p>
+</section>
+
+<!-- 4. Reveal -->
+<section class="screen" id="s4">
+  <div class="ring">😂</div>
+  <h1>JOKE LANG!</h1>
+  <p style="max-width:28ch">There is no fee, Jireh Joy. You're priceless, and I really do want to marry you. ❤️</p>
+  <p style="margin-top:14px;color:var(--gold);font-weight:800">Happy to be yours forever.</p>
+</section>
+
 <script>
-const video = document.getElementById('video');
-const canvas = document.getElementById('canvas');
-const ctx = canvas.getContext('2d');
-const msg = document.getElementById('msg');
-const statusEl = document.getElementById('status');
-const listEl = document.getElementById('list');
-const startBtn = document.getElementById('start');
-const flipBtn = document.getElementById('flip');
-const stopBtn = document.getElementById('stop');
+const $=s=>document.querySelector(s), show=id=>{document.querySelectorAll('.screen').forEach(e=>e.classList.remove('on'));$(id).classList.add('on')};
 
-let model = null, stream = null, running = false, facing = 'environment';
+// floating hearts
+const H=$('#hearts');
+for(let i=0;i<16;i++){const h=document.createElement('span');h.textContent=['💗','💕','✨','💖'][i%4];h.style.left=Math.random()*100+'%';h.style.fontSize=14+Math.random()*22+'px';h.style.animationDuration=9+Math.random()*10+'s';h.style.animationDelay=-Math.random()*15+'s';H.appendChild(h)}
 
-async function loadModel() {
-  if (model) return model;
-  statusEl.textContent = 'Nag-load sa model...';
-  model = await cocoSsd.load();
-  return model;
+// the runaway "No" button
+const no=$('#no'),yes=$('#yes'),tag=$('#tag'),sub=$('#sub');
+const lines=["Nope, try again 😏","Are you sure?? 🥺","The button is shy 🙈","Too slow! 😜","Think about it… 💭","Wrong answer 😌","Just press Yes na 😂","It can't be caught 🏃","I'll wait 🥹","Please? 💗"];
+let tries=0,scale=1;
+function dodge(e){
+  e.preventDefault();e.stopPropagation();
+  tries++;
+  no.classList.add('run');
+  const w=no.offsetWidth,h=no.offsetHeight,p=14;
+  const maxX=innerWidth-w-p,maxY=innerHeight-h-p;
+  let x,y,n=0;
+  do{x=p+Math.random()*(maxX-p);y=p+Math.random()*(maxY-p);n++}
+  while(n<12 && (Math.abs(x-(parseFloat(no.style.left)||0))<80 && Math.abs(y-(parseFloat(no.style.top)||0))<80));
+  no.style.left=x+'px';no.style.top=y+'px';
+  scale=Math.min(scale+.12,2.1);yes.style.transform=`scale(${scale})`;
+  tag.textContent=lines[(tries-1)%lines.length];
+  if(navigator.vibrate)navigator.vibrate(30);
+  if(tries===5)no.textContent='Yes?';
+  if(tries===8){no.textContent='No 😢';sub.textContent='Alam kong gusto mo rin 😘'}
+}
+['touchstart','pointerdown','mouseenter','click'].forEach(ev=>no.addEventListener(ev,dodge,{passive:false}));
+
+// confetti
+const cv=$('#fx'),cx=cv.getContext('2d');let P=[];
+function size(){cv.width=innerWidth*devicePixelRatio;cv.height=innerHeight*devicePixelRatio}
+size();addEventListener('resize',size);
+function burst(){
+  const cols=['#ff5d8f','#ffc857','#ffd6e3','#ff8a5c','#fff'];
+  for(let i=0;i<160;i++)P.push({x:cv.width/2,y:cv.height*.45,vx:(Math.random()-.5)*20*devicePixelRatio,vy:(-Math.random()*18-4)*devicePixelRatio,s:(5+Math.random()*7)*devicePixelRatio,c:cols[i%5],r:Math.random()*6,vr:(Math.random()-.5)*.4,l:1});
+  if(!burst.on){burst.on=1;tick()}
+}
+function tick(){
+  cx.clearRect(0,0,cv.width,cv.height);
+  P=P.filter(p=>p.l>0&&p.y<cv.height+40);
+  P.forEach(p=>{p.vy+=.5*devicePixelRatio;p.x+=p.vx;p.y+=p.vy;p.r+=p.vr;p.l-=.004;cx.save();cx.translate(p.x,p.y);cx.rotate(p.r);cx.fillStyle=p.c;cx.globalAlpha=Math.max(p.l,0);cx.fillRect(-p.s/2,-p.s/3,p.s,p.s*.6);cx.restore()});
+  if(P.length)requestAnimationFrame(tick);else burst.on=0;
 }
 
-async function openCamera() {
-  if (stream) stream.getTracks().forEach(t => t.stop());
-  if (!navigator.mediaDevices || !window.isSecureContext) {
-    msg.style.display = 'flex';
-    msg.textContent = 'Dili ma-open ang camera kay wala sa HTTPS ang page. I-open gikan sa https://username.github.io/... link, dili gikan sa file o preview. O pislita ang "Take photo instead".';
-    statusEl.textContent = 'Error: not a secure page';
-    return false;
-  }
-  try {
-    stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: facing, width: { ideal: 640 }, height: { ideal: 480 } },
-      audio: false
-    });
-  } catch (e) {
-    msg.style.display = 'flex';
-    const hints = {
-      NotAllowedError: 'Gi-block ang camera permission. I-tap ang lock icon tupad sa address bar → Camera → Allow, dayon i-refresh. Kung in-app browser (Messenger/FB), i-open sa Chrome o Safari.',
-      NotFoundError: 'Walay camera nga nakita sa device.',
-      NotReadableError: 'Gigamit na sa laing app ang camera. Sira-a ang lain nga app dayon sulayi pag-usab.',
-      OverconstrainedError: 'Dili suportado ang camera setting. Sulayi ang Switch camera.'
-    };
-    msg.textContent = (hints[e.name] || 'Dili ma-open ang camera.') + ' O pislita ang "Take photo instead".';
-    statusEl.textContent = 'Error: ' + e.name;
-    return false;
-  }
-  video.style.display = '';
-  video.srcObject = stream;
-  await video.play();
-  canvas.width = video.videoWidth;
-  canvas.height = video.videoHeight;
-  msg.style.display = 'none';
-  return true;
-}
-
-function drawPreds(preds) {
-  ctx.lineWidth = Math.max(3, canvas.width / 200);
-  const fs = Math.max(18, Math.round(canvas.width / 35));
-  ctx.font = fs + 'px Georgia';
-  const counts = {};
-  preds.forEach(p => {
-    if (p.class !== 'person' || p.score < 0.5) return;
-    const [x, y, w, h] = p.bbox;
-    ctx.strokeStyle = '#5bd28f';
-    ctx.strokeRect(x, y, w, h);
-    const label = `Tawo ${Math.round(p.score * 100)}%`;
-    const tw = ctx.measureText(label).width + 10;
-    ctx.fillStyle = '#5bd28f';
-    ctx.fillRect(x, Math.max(0, y - fs - 6), tw, fs + 6);
-    ctx.fillStyle = '#062012';
-    ctx.fillText(label, x + 5, Math.max(fs, y - 8));
-    counts[p.class] = (counts[p.class] || 0) + 1;
-  });
-  const keys = Object.keys(counts);
-  const n = counts.person || 0;
-  listEl.innerHTML = n
-    ? `<b>${n}</b> ka tawo ang na-detect`
-    : 'Walay tawo nga na-detect.';
-}
-
-async function detectLoop() {
-  if (!running) return;
-  const preds = await model.detect(video);
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  drawPreds(preds);
-  requestAnimationFrame(detectLoop);
-}
-
-document.getElementById('photo').onclick = () => document.getElementById('file').click();
-document.getElementById('file').onchange = async (e) => {
-  const f = e.target.files[0];
-  if (!f) return;
-  running = false;
-  if (stream) stream.getTracks().forEach(t => t.stop());
-  await loadModel();
-  statusEl.textContent = 'Nag-detect sa photo...';
-  const img = new Image();
-  img.src = URL.createObjectURL(f);
-  await img.decode();
-  canvas.width = img.naturalWidth;
-  canvas.height = img.naturalHeight;
-  video.style.display = 'none';
-  msg.style.display = 'none';
-  ctx.drawImage(img, 0, 0);
-  drawPreds(await model.detect(img));
-  statusEl.textContent = 'Human na. Pislita ang "Take photo instead" para sa lain pa.';
-  startBtn.disabled = false;
-  e.target.value = '';
-};
-
-startBtn.onclick = async () => {
-  startBtn.disabled = true;
-  statusEl.textContent = 'Palihog pislita ang "Allow" kung mangayo ang browser ug camera permission...';
-  // Ask for the camera FIRST so the Allow prompt appears right away
-  if (!(await openCamera())) { startBtn.disabled = false; return; }
-  flipBtn.disabled = false;
-  stopBtn.disabled = false;
-  try {
-    await loadModel();
-  } catch (e) {
-    statusEl.textContent = 'Wala ma-load ang detection model. Check ang internet ug i-refresh.';
-    return;
-  }
-  running = true;
-  statusEl.textContent = 'Nag-detect na...';
-  detectLoop();
-};
-
-flipBtn.onclick = async () => {
-  facing = facing === 'environment' ? 'user' : 'environment';
-  await openCamera();
-};
-
-stopBtn.onclick = () => {
-  running = false;
-  if (stream) stream.getTracks().forEach(t => t.stop());
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  msg.style.display = 'flex';
-  msg.textContent = 'Gi-stop na ang camera.';
-  statusEl.textContent = 'Naghulat...';
-  startBtn.disabled = false;
-  flipBtn.disabled = true;
-  stopBtn.disabled = true;
-};
+// flow
+yes.addEventListener('click',()=>{show('#s2');burst()});
+const steps=["Contacting the bank of love","Verifying your feelings…","Checking if you're really mine…","Almost there…"];
+document.querySelectorAll('[data-pay]').forEach(b=>b.addEventListener('click',()=>{
+  show('#s3');let i=0;const t=setInterval(()=>{$('#proc').textContent=steps[++i%steps.length]},900);
+  setTimeout(()=>{clearInterval(t);show('#s4');burst();setTimeout(burst,700)},3800);
+}));
 </script>
 </body>
 </html>
